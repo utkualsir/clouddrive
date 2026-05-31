@@ -31,7 +31,6 @@ import { setupWebSocket } from './websocket';
 const app = express();
 const PORT = process.env.PORT ?? 3001;
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? './uploads';
-const isDev = process.env.NODE_ENV !== 'production';
 
 function getLocalIP(): string {
   const ifaces = os.networkInterfaces();
@@ -49,19 +48,12 @@ for (const dir of [UPLOAD_DIR, `${UPLOAD_DIR}/avatars`, `${UPLOAD_DIR}/covers`, 
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (curl, Postman, mobile apps)
-    if (!origin) return callback(null, true);
-    // Allow all origins in development
-    if (isDev) return callback(null, true);
-    // In production allow only the configured frontend URL
-    const allowed = (process.env.FRONTEND_URL ?? '')
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
-    if (allowed.includes(origin)) return callback(null, true);
-    callback(new Error(`CORS: origin ${origin} not allowed`));
-  },
+  origin: [
+    'http://localhost:5173',
+    'https://clouddrive-plum.vercel.app',
+    'https://clouddrive-dtiunojg9-utkualsirs-projects.vercel.app',
+    'https://clouddrive-jgz5a7yst-utkualsirs-projects.vercel.app'
+  ],
   credentials: true,
 }));
 
