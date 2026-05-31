@@ -48,12 +48,7 @@ for (const dir of [UPLOAD_DIR, `${UPLOAD_DIR}/avatars`, `${UPLOAD_DIR}/covers`, 
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://clouddrive-plum.vercel.app',
-    'https://clouddrive-dtiunojg9-utkualsirs-projects.vercel.app',
-    'https://clouddrive-jgz5a7yst-utkualsirs-projects.vercel.app'
-  ],
+  origin: true,
   credentials: true,
 }));
 
