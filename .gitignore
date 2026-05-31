@@ -1,0 +1,8 @@
+node_modules/
+uploads/
+*.env
+!*.env.example
+dist/
+.DS_Store
+*.db
+*.db-journal

@@ -1,0 +1,418 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String                    @id @default(cuid())
+  email                String                    @unique
+  username             String                    @unique
+  password             String
+  displayName          String
+  avatarColor          String                    @default("#6366f1")
+  storageUsed          BigInt                    @default(0)
+  storageLimit         BigInt                    @default(5368709120)
+  role                 String                    @default("USER")
+  resetToken           String?
+  resetExpires         DateTime?
+  lastSeen             DateTime?
+  createdAt            DateTime                  @default(now())
+  bio                  String?
+  avatarUrl            String?
+  birthDate            DateTime?
+  gender               String?
+  relationshipStatus   String?
+  website              String?
+  location             String?
+  occupation           String?
+  company              String?
+  school               String?
+  hobbies              String                    @default("[]")
+  showBirthDate        Boolean                   @default(false)
+  showGender           Boolean                   @default(false)
+  showRelationship     Boolean                   @default(false)
+  showEmail            Boolean                   @default(false)
+  onboardingCompleted  Boolean                   @default(false)
+  onboardingStep       Int                       @default(0)
+  emailNotifications   Boolean                   @default(true)
+  knownDevices         String                    @default("[]")
+  twoFactorEnabled     Boolean                   @default(false)
+  twoFactorSecret      String?
+  twoFactorTempSecret  String?
+  twoFactorBackupCodes String                    @default("[]")
+  plan                 String                    @default("free")
+  newSigninAlerts      Boolean                   @default(true)
+  storageWarnings      Boolean                   @default(true)
+  coverPhotoUrl        String?
+  currentCity          String?
+  hometown             String?
+  country              String?
+  university           String?
+  favoriteMusic        String                    @default("[]")
+  favoriteSports       String                    @default("[]")
+  favoriteTeam         String?
+  languages            String                    @default("[]")
+  profileViews         Int                       @default(0)
+  searchHistory        String                    @default("[]")
+  referralCode         String?                   @unique
+  referredBy           String?
+  referralCount        Int                       @default(0)
+  bonusStorageGB       Int                       @default(0)
+  activities           Activity[]
+  badges               Badge[]
+  conversations        ConversationParticipant[]
+  files                File[]
+  fileLikes            FileLike[]
+  fileComments         FileComment[]
+  folders              Folder[]
+  foldersSharedByMe    FolderShare[]             @relation("SharedByMe")
+  foldersSharedWithMe  FolderShare[]             @relation("SharedWithMe")
+  followers            Follow[]                  @relation("Followers")
+  following            Follow[]                  @relation("Following")
+  forumLikes           ForumLike[]
+  forumPosts           ForumPost[]               @relation("PostAuthor")
+  forumThreads         ForumThread[]             @relation("ThreadAuthor")
+  receivedRequests     Friendship[]              @relation("ReceivedRequests")
+  sentRequests         Friendship[]              @relation("SentRequests")
+  loginHistory         LoginHistory[]
+  sentMessages         Message[]
+  notificationsFrom    Notification[]            @relation("NotificationFrom")
+  notifications        Notification[]            @relation("UserNotifications")
+  paymentRequests      PaymentRequest[]
+  reviews              Review?
+  reviewLikes          ReviewLike[]
+  tags                 Tag[]
+  referralsMade        Referral[]                @relation("ReferralsMade")
+  referralReceived     Referral?                 @relation("ReferredBy")
+}
+
+model LoginHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  ipAddress  String
+  userAgent  String
+  deviceName String
+  browser    String
+  os         String
+  location   String   @default("Unknown")
+  createdAt  DateTime @default(now())
+  isCurrent  Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Badge {
+  id       String   @id @default(cuid())
+  userId   String
+  type     String
+  earnedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}
+
+model Review {
+  id        String       @id @default(cuid())
+  userId    String       @unique
+  rating    Int
+  comment   String
+  likes     Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likedBy   ReviewLike[]
+}
+
+model ReviewLike {
+  id       String @id @default(cuid())
+  reviewId String
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+}
+
+model Folder {
+  id          String        @id @default(cuid())
+  name        String
+  color       String        @default("#6366f1")
+  isEncrypted Boolean       @default(false)
+  password    String?
+  parentId    String?
+  userId      String
+  isStarred   Boolean       @default(false)
+  isTrashed   Boolean       @default(false)
+  trashedAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  files       File[]
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent      Folder?       @relation("FolderToFolder", fields: [parentId], references: [id])
+  children    Folder[]      @relation("FolderToFolder")
+  sharedWith  FolderShare[]
+}
+
+model Friendship {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  toUser     User     @relation("ReceivedRequests", fields: [toUserId], references: [id], onDelete: Cascade)
+  fromUser   User     @relation("SentRequests", fields: [fromUserId], references: [id], onDelete: Cascade)
+}
+
+model FolderShare {
+  id           String   @id @default(cuid())
+  folderId     String
+  sharedWithId String
+  sharedById   String
+  permission   String   @default("VIEW")
+  createdAt    DateTime @default(now())
+  sharedBy     User     @relation("SharedByMe", fields: [sharedById], references: [id], onDelete: Cascade)
+  sharedWith   User     @relation("SharedWithMe", fields: [sharedWithId], references: [id], onDelete: Cascade)
+  folder       Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+}
+
+model File {
+  id                 String        @id @default(cuid())
+  name               String
+  originalName       String
+  mimeType           String
+  size               BigInt
+  storagePath        String
+  thumbnailPath      String?
+  folderId           String?
+  userId             String
+  isStarred          Boolean       @default(false)
+  isTrashed          Boolean       @default(false)
+  trashedAt          DateTime?
+  downloadCount      Int           @default(0)
+  viewCount          Int           @default(0)
+  shareToken         String?       @unique
+  shareExpires       DateTime?
+  sharePassword      String?
+  shareViews         Int           @default(0)
+  visibility         String        @default("PRIVATE")
+  parentFileId       String?
+  versionNumber      Int           @default(1)
+  currentVersion     Int           @default(1)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  parentFile         File?         @relation("FileVersions", fields: [parentFileId], references: [id])
+  childFiles         File[]        @relation("FileVersions")
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder             Folder?       @relation(fields: [folderId], references: [id])
+  comments           FileComment[]
+  tags               FileTag[]
+  versions           FileVersion[]
+  messageAttachments Message[]
+  likes              FileLike[]
+}
+
+model FileLike {
+  id        String   @id @default(cuid())
+  fileId    String
+  userId    String
+  createdAt DateTime @default(now())
+  file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, userId])
+}
+
+model FileComment {
+  id        String   @id @default(cuid())
+  fileId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+}
+
+model FileVersion {
+  id            String   @id @default(cuid())
+  fileId        String
+  versionNumber Int
+  storagePath   String
+  size          BigInt
+  createdAt     DateTime @default(now())
+  file          File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  target    String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String
+  color     String    @default("#6366f1")
+  userId    String
+  createdAt DateTime  @default(now())
+  files     FileTag[]
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+}
+
+model FileTag {
+  fileId String
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@id([fileId, tagId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  following   User     @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+  follower    User     @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  fromId    String?
+  type      String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  from      User?    @relation("NotificationFrom", fields: [fromId], references: [id])
+  user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id            String                    @id @default(cuid())
+  lastMessage   String?
+  lastMessageAt DateTime?
+  createdAt     DateTime                  @default(now())
+  participants  ConversationParticipant[]
+  messages      Message[]
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+  lastReadAt     DateTime?
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String
+  attachmentId   String?
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  attachment     File?        @relation(fields: [attachmentId], references: [id])
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model ForumCategory {
+  id          String        @id @default(cuid())
+  name        String
+  description String
+  icon        String        @default("ti-messages")
+  color       String        @default("#6366f1")
+  order       Int           @default(0)
+  createdAt   DateTime      @default(now())
+  threads     ForumThread[]
+}
+
+model ForumThread {
+  id         String        @id @default(cuid())
+  title      String
+  content    String
+  categoryId String
+  authorId   String
+  views      Int           @default(0)
+  isPinned   Boolean       @default(false)
+  isLocked   Boolean       @default(false)
+  isSolved   Boolean       @default(false)
+  tags       String        @default("[]")
+  lastPostAt DateTime      @default(now())
+  lastPostBy String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  posts      ForumPost[]
+  author     User          @relation("ThreadAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  category   ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
+
+model ForumPost {
+  id        String      @id @default(cuid())
+  content   String
+  threadId  String
+  authorId  String
+  isAnswer  Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  likes     ForumLike[]
+  author    User        @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  thread    ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+}
+
+model ForumLike {
+  id        String    @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model Referral {
+  id           String   @id @default(cuid())
+  referrerId   String
+  referrer     User     @relation("ReferralsMade", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredId   String   @unique
+  referred     User     @relation("ReferredBy", fields: [referredId], references: [id], onDelete: Cascade)
+  bonusGranted Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model PaymentRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  plan      String?
+  storageGB Int?
+  amount    Float
+  currency  String
+  status    String   @default("PENDING")
+  note      String?
+  adminNote String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
